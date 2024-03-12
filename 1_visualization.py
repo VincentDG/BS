@@ -25,11 +25,8 @@ available_numbers = [
 # Define the available signals
 available_signals = ["Signal 1", "Signal 2"]      
 
-def plot_ecg(signal, start_time, end_time, fs=360.0):
+def plot_ecg(signal, lead, start_time, end_time, fs=360.0):
     
-    app.logger.info(f"start_time: {start_time}")
-    app.logger.info(f"end_time: {end_time}")
-
     time = np.arange(start_time, end_time) / fs
 
     app.logger.info(f"time: {time}")
@@ -47,41 +44,41 @@ def plot_ecg(signal, start_time, end_time, fs=360.0):
         yaxis_title="Amplitude (mV)",
         plot_bgcolor='white',
         height=800,  # Set the height to 800 pixels
-        width=1396,
+        width=1360,
         xaxis=dict(tickmode='array', tickvals=np.arange(start_time/360, end_time/360, 0.2), range=[start_time/360, end_time/360]),  
-        yaxis=dict(range=[min(signal)-1, max(signal)+1]),  # Adjust the range of the y-axis
+        yaxis=dict(range=[-2.01,2.01]),  # Adjust the range of the y-axis
     )
 
      # Add light red gridlines every 0.04 seconds on the x-axis
     for x in np.arange(start_time/360, end_time/360, 0.04):
         fig.add_shape(type="line",
-                      x0=x, y0=min(signal)-1, x1=x, y1=max(signal)+1,
+                      x0=x, y0=-2.01, x1=x, y1=2.01,
                       line=dict(color="rgba(255, 0, 0, 0.5)", width=1, dash='solid'))  # Light red (alpha=0.5) solid line
 
     # Add darker red gridlines every 0.2 seconds on the x-axis
     for x in np.arange(start_time/360, end_time/360, 0.2):
         fig.add_shape(type="line",
-                      x0=x, y0=min(signal)-1, x1=x, y1=max(signal)+1,
+                      x0=x, y0=-2.01, x1=x, y1=2.01,
                       line=dict(color="rgba(255, 0, 0, 1.0)", width=1, dash='solid'))  # Darker red (alpha=1.0) solid line
 
     # Add light red gridlines every 0.1 on the y-axis
-    for y in np.arange(0, max(signal)+1, 0.1):
+    for y in np.arange(0, 2.01, 0.1):
         fig.add_shape(type="line",
                       x0=0, y0=y, x1=end_time/360, y1=y,
                       line=dict(color="rgba(255, 0, 0, 0.5)", width=1, dash='solid'))  # Light red (alpha=0.5) solid line
 
-    for y in np.arange(0, min(signal)-1, -0.1):
+    for y in np.arange(0, -2.01, -0.1):
         fig.add_shape(type="line",
                       x0=0, y0=y, x1=end_time/360, y1=y,
                       line=dict(color="rgba(255, 0, 0, 0.5)", width=1, dash='solid'))  # Light red (alpha=0.5) solid line
 
     # Add darker red gridlines every 0.5 on the y-axis
-    for y in np.arange(0, max(signal)+1, 0.5):
+    for y in np.arange(0, 2.01, 0.5):
         fig.add_shape(type="line",
                       x0=0, y0=y, x1=end_time/360, y1=y,
                       line=dict(color="rgba(255, 0, 0, 1.0)", width=1, dash='solid'))  # Darker red (alpha=1.0) solid line
 
-    for y in np.arange(0, min(signal)-1, -0.5):
+    for y in np.arange(0, -2.01, -0.5):
         fig.add_shape(type="line",
                       x0=0, y0=y, x1=end_time/360, y1=y,
                       line=dict(color="rgba(255, 0, 0, 1.0)", width=1, dash='solid'))  # Darker red (alpha=1.0) solid line
@@ -89,7 +86,8 @@ def plot_ecg(signal, start_time, end_time, fs=360.0):
     # Update the layout to fix the aspect ratio
     fig.update_layout(
         xaxis=dict(fixedrange=True),  # Fix the x-axis range
-        yaxis=dict(fixedrange=True)   # Fix the y-axis range
+        yaxis=dict(fixedrange=True),   # Fix the y-axis range
+        title = f"Lead: {lead}"
     )
 
     return fig.to_html(full_html=False)
@@ -115,13 +113,20 @@ def display_plot():
     s2 = patient_record.p_signal[:, 1]
 
     # Get the selected signal data
-    signal_data = s1 if selected_signal == "Signal 1" else s2
+    if (selected_signal == "Signal 1"):
+        signal_data = s1 
+        title = patient_record.sig_name[0]
+    else:
+        signal_data = s2
+        title = patient_record.sig_name[1]
 
     # Plot ECG signal and return the HTML content
-    plot_html = plot_ecg(signal_data, start_time=sampfrom, end_time= sampto, fs=360.0)
+    plot_html = plot_ecg(signal_data, title, start_time=sampfrom, end_time= sampto, fs=360.0)
 
     app.logger.info(f"Sampfrom: {sampfrom}")
     app.logger.info(f"Sampto: {sampto}")
+
+    # app.logger.info(f"Available signals: {available_signals}")
 
     return render_template('plot3.html', plot_html=plot_html, 
                            available_numbers=available_numbers, 

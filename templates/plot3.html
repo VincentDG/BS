@@ -3,25 +3,33 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width-device-width", initial-scale="1.0">
+    <meta name="viewport", initial-scale="1.0">
     <title>ECG Plot</title>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <script>
         function updateFrame(direction) {
-            var sampfromInput = document.getElementById('last_sampfrom');
-            var samptoInput = document.getElementById('last_sampto');
-            var increment = 1081;
+            var lastSampFromInput = document.getElementById('last_sampfrom');
+            var lastSampToInput = document.getElementById('last_sampto');
+            var newSampFrom = document.getElementById('sampfrom');
+            var newSampTo = document.getElementById('sampto');
+            var increment = 1080;
+
+            console.log(lastSampFromInput.value);
+            console.log(lastSampToInput.value);
 
             if (direction === 'next') {
-                sampfromInput.value = sampfromInput + increment;
-                samptoInput.value = samptoInput + increment;
-            } else if (direction === 'previous') {
-                sampfromInput.value = sampfromInput - increment;
-                samptoInput.value = samptoInput - increment;
+                newSampFrom.value = +lastSampFromInput.value + increment;
+                newSampTo.value = +lastSampToInput.value + increment;
+                console.log(newSampFrom.value);
+                console.log(newSampTo.value);
+                document.forms["ecgForm"].submit();
+            } else if (direction === 'previous' && lastSampFromInput.value > 0) {
+                newSampFrom.value = +lastSampFromInput.value - increment;
+                newSampTo.value = +lastSampToInput.value - increment;
+                console.log(newSampFrom.value);
+                console.log(newSampTo.value);
+                document.forms["ecgForm"].submit();
             }
-
-            // Submit the form after updating the values
-            document.forms["ecgForm"].submit();
         }
     </script>
 </head>
@@ -32,21 +40,13 @@
     <form method="post" id="ecgForm">
         <input type="hidden" id="last_sampfrom" name="last_sampfrom" value="{{ last_sampfrom }}">
         <input type="hidden" id="last_sampto" name="last_sampto" value="{{ last_sampto }}">
-
-
-        <label for="sampfrom">sampfrom:</label>
-        <input type="text" id="sampfrom" name="sampfrom" value="0">
-        <br>
-
-        <label for="sampto">sampto:</label>
-        <input type="text" id="sampto" name="sampto" value="1081">
+        <input type="hidden" id="sampfrom" name="sampfrom" value="0">
+        <input type="hidden" id="sampto" name="sampto" value="1081">
         
-        <br>
-
         <label for="selected_number">Record number:</label>
         <select id="selected_number" name="selected_number">
             {% for number in available_numbers %}
-                <option value="{{ number }}"> {{ number }} </option>
+                <option value="{{ number }}" {% if selected_number == number %} selected {% endif %}>{{ number }}</option>
             {% endfor %}
 
         </select> 
@@ -56,7 +56,7 @@
         <label for="selected_signal">Lead:</label>
         <select id="selected_signal" name="selected_signal">
             {% for signal in available_signals %}
-                <option value="{{ signal }}" {% if selected_signal == signal %} selected {% endif %}>{{ signal }}</option>
+            <option value="{{ signal }}" {% if selected_signal == signal %} selected {% endif %}>{{ signal }}</option>
             {% endfor %}
         </select><br>
 
