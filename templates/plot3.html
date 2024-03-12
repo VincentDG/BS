@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width-device-width", initial-scale="1.0">
+    <title>ECG Plot</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script>
+        function updateFrame(direction) {
+            var sampfromInput = document.getElementById('last_sampfrom');
+            var samptoInput = document.getElementById('last_sampto');
+            var increment = 1081;
+
+            if (direction === 'next') {
+                sampfromInput.value = sampfromInput + increment;
+                samptoInput.value = samptoInput + increment;
+            } else if (direction === 'previous') {
+                sampfromInput.value = sampfromInput - increment;
+                samptoInput.value = samptoInput - increment;
+            }
+
+            // Submit the form after updating the values
+            document.forms["ecgForm"].submit();
+        }
+    </script>
+</head>
+
+<body>
+    <h1>MIT-BIH Arrhyhtmia Database ECG Plot</h1>
+
+    <form method="post" id="ecgForm">
+        <input type="hidden" id="last_sampfrom" name="last_sampfrom" value="{{ last_sampfrom }}">
+        <input type="hidden" id="last_sampto" name="last_sampto" value="{{ last_sampto }}">
+
+
+        <label for="sampfrom">sampfrom:</label>
+        <input type="text" id="sampfrom" name="sampfrom" value="0">
+        <br>
+
+        <label for="sampto">sampto:</label>
+        <input type="text" id="sampto" name="sampto" value="1081">
+        
+        <br>
+
+        <label for="selected_number">Record number:</label>
+        <select id="selected_number" name="selected_number">
+            {% for number in available_numbers %}
+                <option value="{{ number }}"> {{ number }} </option>
+            {% endfor %}
+
+        </select> 
+        
+        <br>
+
+        <label for="selected_signal">Lead:</label>
+        <select id="selected_signal" name="selected_signal">
+            {% for signal in available_signals %}
+                <option value="{{ signal }}" {% if selected_signal == signal %} selected {% endif %}>{{ signal }}</option>
+            {% endfor %}
+        </select><br>
+
+        <button type="submit">Update</button>
+        <br> <br> <br>
+        <button type="button" onclick="updateFrame('previous')">Previous frame</button>
+        <button type="button" onclick="updateFrame('next')">Next frame</button>
+
+    </form>
+
+
+    <br>
+    <!-- Plotly figure will be inserted here -->
+    <center>
+    {{plot_html | safe}}
+    </center>
+    
+</body>
+</html>
+

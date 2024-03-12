@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ECG Plot</title>
+    <!-- Include Plotly.js -->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body>
+    <h1>ECG Plot</h1>
+    <form method="post">
+        <label for="sampto">sampto:</label>
+        <input type="text" id="sampto" name="sampto" value="2000"><br>
+        <label for="selected_number">Select a number:</label>
+        <select id="selected_number" name="selected_number">
+            {% for number in available_numbers %}
+                <option value="{{ number }}" {% if selected_number == number %} selected {% endif %}>{{ number }}</option>
+            {% endfor %}
+        </select><br>
+        <label for="selected_signal">Select a signal:</label>
+        <select id="selected_signal" name="selected_signal">
+            {% for signal in available_signals %}
+                <option value="{{ signal }}" {% if selected_signal == signal %} selected {% endif %}>{{ signal }}</option>
+            {% endfor %}
+        </select><br>
+        
+        <button type="submit">Previous frame</button>
+        <button type="submit">Update</button>
+        <button type="submit">Next frame</button>
+    </form>
+    <br>
+    <!-- Plotly figure will be inserted here -->
+    {{ plot_html | safe }}
+</body>
+</html>
