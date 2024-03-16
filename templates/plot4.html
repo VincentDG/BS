@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport", initial-scale="1.0">
+    <title>ECG Plot</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script>
+        function updateFrame(direction) {
+            var lastSampFromInput = document.getElementById('last_sampfrom');
+            var lastSampToInput = document.getElementById('last_sampto');
+            var newSampFrom = document.getElementById('sampfrom');
+            var newSampTo = document.getElementById('sampto');
+            var increment = 1080;
+
+            console.log(lastSampFromInput.value);
+            console.log(lastSampToInput.value);
+
+            if (direction === 'next') {
+                newSampFrom.value = +lastSampFromInput.value + increment;
+                newSampTo.value = +lastSampToInput.value + increment;
+                console.log(newSampFrom.value);
+                console.log(newSampTo.value);
+                document.forms["ecgForm"].submit();
+            } else if (direction === 'previous' && lastSampFromInput.value > 0) {
+                newSampFrom.value = +lastSampFromInput.value - increment;
+                newSampTo.value = +lastSampToInput.value - increment;
+                console.log(newSampFrom.value);
+                console.log(newSampTo.value);
+                document.forms["ecgForm"].submit();
+            }
+        }
+
+        // Function to toggle annotation mode
+        function toggleAnnotateMode() {
+            var annotateModeButton = document.getElementById('annotateModeButton');
+            var annotationInputs = document.getElementById('annotationInputs');
+            if (annotateModeButton.innerText === 'Annotate mode') {
+                annotateModeButton.innerText = 'Disable Annotate mode';
+                annotationInputs.style.display = 'block';
+            } else {
+                annotateModeButton.innerText = 'Annotate mode';
+                annotationInputs.style.display = 'none';
+            }
+        }
+
+        // Function to update the plot with the annotation
+        function updatePlotWithAnnotation() {
+            var annotationX = document.getElementById('annotationX').value;
+            var annotationText = document.getElementById('annotationText').value;
+            // Here, you would need to call your server-side function to update the plot
+            // This could involve sending a request to the server with the annotation data
+            // and then updating the plot based on the server's response.
+
+            
+            // Prepare the data to be sent to the server
+            var data = {
+                annotationX: annotationX,
+                annotationText: annotationText
+            };
+
+            // Convert the data to JSON format
+            var body = JSON.stringify(data);
+
+            // Specify the URL of your server endpoint that will handle the annotation data
+            var url = '/annotate-plot'; // Replace with your actual endpoint
+
+            // Use Fetch API to send the POST request
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: body
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json(); // Assuming the server responds with JSON
+            })
+            .then(data => {
+                console.log('Success:', data);
+                // Here, you can update the plot based on the server's response
+                // For example, you might want to redraw the plot with the new annotation
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+
+    </script>
+</head>
+
+<body>
+    <h1>MIT-BIH Arrhyhtmia Database ECG Plot</h1>
+
+    <form method="post" id="ecgForm">
+        <input type="hidden" id="last_sampfrom" name="last_sampfrom" value="{{ last_sampfrom }}">
+        <input type="hidden" id="last_sampto" name="last_sampto" value="{{ last_sampto }}">
+        <input type="hidden" id="sampfrom" name="sampfrom" value="0">
+        <input type="hidden" id="sampto" name="sampto" value="1081">
+        
+        <label for="selected_number">Record number:</label>
+        <select id="selected_number" name="selected_number">
+            {% for number in available_numbers %}
+                <option value="{{ number }}" {% if selected_number == number %} selected {% endif %}>{{ number }}</option>
+            {% endfor %}
+
+        </select> 
+        
+        <br>
+
+        <label for="selected_signal">Lead:</label>
+        <select id="selected_signal" name="selected_signal">
+            {% for signal in available_signals %}
+            <option value="{{ signal }}" {% if selected_signal == signal %} selected {% endif %}>{{ signal }}</option>
+            {% endfor %}
+        </select><br>
+
+        <button type="submit">Update</button>
+        <br> <br> <br>
+        <button type="button" onclick="updateFrame('previous')">Previous frame</button>
+        <button type="button" onclick="updateFrame('next')">Next frame</button>
+
+    </form>
+
+    <!-- Annotation mode toggle button -->
+    <button type="button" id="annotateModeButton" onclick="toggleAnnotateMode()">Annotate mode</button>
+
+    <!-- Annotation input fields -->
+    <div id="annotationInputs" style="display: none;">
+        <label for="annotationX">Annotation X-coordinate:</label>
+        <input type="number" id="annotationX" name="annotationX">
+        <label for="annotationText">Annotation Text:</label>
+        <input type="text" id="annotationText" name="annotationText">
+        <button type="button" onclick="updatePlotWithAnnotation()">Update Plot</button>
+    </div>
+
+
+    <br>
+    <!-- Plotly figure will be inserted here -->
+    <center>
+    {{plot_html | safe}}
+    </center>
+    
+</body>
+</html>
+
