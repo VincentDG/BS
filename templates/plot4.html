@@ -49,11 +49,11 @@
         function updatePlotWithAnnotation() {
             var annotationX = document.getElementById('annotationX').value;
             var annotationText = document.getElementById('annotationText').value;
-            // Here, you would need to call your server-side function to update the plot
-            // This could involve sending a request to the server with the annotation data
-            // and then updating the plot based on the server's response.
-
             
+            // Call server-side function to update plot
+            // Send server request with annotation data 
+            // Update plot based on server response
+
             // Prepare the data to be sent to the server
             var data = {
                 annotationX: annotationX,
@@ -62,9 +62,9 @@
 
             // Convert the data to JSON format
             var body = JSON.stringify(data);
-
+            
             // Specify the URL of your server endpoint that will handle the annotation data
-            var url = '/annotate-plot'; // Replace with your actual endpoint
+            var url = '/annotate-plot';
 
             // Use Fetch API to send the POST request
             fetch(url, {
@@ -81,9 +81,23 @@
                 return response.json(); // Assuming the server responds with JSON
             })
             .then(data => {
-                console.log('Success:', data);
+                console.log('Success:', data.plotHtml);
+                // console.log('data.plotHtml', data.plotHtml)
                 // Here, you can update the plot based on the server's response
                 // For example, you might want to redraw the plot with the new annotation
+                document.getElementById('plot-container').innerHTML = data.plotHtml;
+            
+                // Extract and execute script tags from the plot HTML
+                var tempDiv = document.createElement('div');
+                tempDiv.innerHTML = data.plotHtml;
+                var scripts = tempDiv.getElementsByTagName('script');
+                for (var i = 0; i < scripts.length; i++) {
+                    var script = scripts[i];
+                    var newScript = document.createElement('script');
+                    newScript.text = script.text;
+                    document.body.appendChild(newScript);
+                    document.body.removeChild(newScript);
+                }
             })
             .catch(error => {
                 console.error('Error:', error);
@@ -141,9 +155,11 @@
 
     <br>
     <!-- Plotly figure will be inserted here -->
-    <center>
-    {{plot_html | safe}}
-    </center>
+    <div id="plot-container">
+        <center>
+        {{plot_html | safe}}
+        </center>
+    </div>
     
 </body>
 </html>

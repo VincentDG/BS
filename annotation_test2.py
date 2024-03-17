@@ -1,10 +1,11 @@
 import numpy as np
 import plotly.graph_objs as go
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, session
 import wfdb
 import logging
 
 app = Flask(__name__)
+app.secret_key = 'a8c644170ab72917f4b634c1c018525eb53b920b46fecdb0510abb27755c5959'
 
 logging.basicConfig(filename='app.log', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -25,33 +26,10 @@ available_numbers = [
 # Define the available signals
 available_signals = ["Signal 1", "Signal 2"]      
 
-def plot_ecg(signal, lead, start_time, end_time, fs=360.0, annotate_mode=False, annotation_x=None, annotation_text=None):
-    # Existing code to create the plot...
-    
-    if annotate_mode:
-        # Add a blue vertical line at the specified x-coordinate
-        fig.add_shape(
-            type="line",
-            x0=annotation_x, y0=-2.01, x1=annotation_x, y1=2.01,
-            line=dict(color="blue", width=2, dash='dash')
-        )
-        
-        # Add text label for the vertical line
-        fig.add_annotation(
-            x=annotation_x, y=0, # Adjust y position as needed
-            text=annotation_text,
-            showarrow=False,
-            font=dict(size=12, color="blue"),
-            bgcolor="white",
-            bordercolor="black",
-            borderwidth=1,
-            borderpad=4,
-            opacity=0.8
-        )
-    
+def plot_ecg(signal, lead, start_time, end_time, fs=360.0, annotate_mode=False, annotation_x=None, annotation_text=None):    
     time = np.arange(start_time, end_time) / fs
 
-    app.logger.info(f"time: {time}")
+    # app.logger.info(f"time: {time}")
 
     # Create a Plotly figure
     fig = go.Figure()
@@ -112,8 +90,87 @@ def plot_ecg(signal, lead, start_time, end_time, fs=360.0, annotate_mode=False, 
         title = f"Lead: {lead}"
     )
 
+    # annotation_x = 1
+    # annotation_text = 'A'
+
+    # fig.add_shape(
+    #     type="line",
+    #     x0=annotation_x, y0=-2.01, x1=annotation_x, y1=2.01,
+    #     line=dict(color="blue", width=2, dash='dash')
+    # )
+    
+    # # Add text label for the vertical line
+    # fig.add_annotation(
+    #     x=annotation_x, y=0, # Adjust y position as needed
+    #     text=annotation_text,
+    #     showarrow=False,
+    #     font=dict(size=12, color="blue"),
+    #     bgcolor="white",
+    #     bordercolor="black",
+    #     borderwidth=1,
+    #     borderpad=4,
+    #     opacity=0.8
+    # )
+
+
+    if annotate_mode:
+        app.logger.info("In annotate mode")
+        # Add a blue vertical line at the specified x-coordinate
+        fig.add_shape(
+            type="line",
+            x0=annotation_x, y0=-2.01, x1=annotation_x, y1=2.01,
+            line=dict(color="blue", width=2, dash='dash')
+        )
+        
+        # Add text label for the vertical line
+        fig.add_annotation(
+            x=annotation_x, y=0, # Adjust y position as needed
+            text=annotation_text,
+            showarrow=False,
+            font=dict(size=12, color="blue"),
+            bgcolor="white",
+            bordercolor="black",
+            borderwidth=1,
+            borderpad=4,
+            opacity=0.8
+        )
+
+
     return fig.to_html(full_html=False)
 
+@app.route('/annotate-plot', methods=['POST'])
+def update_plot():
+    # Parse the incoming JSON data
+    data = request.get_json()
+
+    app.logger.info(data)
+    
+    # Extract annotation data
+    annotation_x = data.get('annotationX')
+    annotation_text = data.get('annotationText')
+    
+    # Here, you would process the annotation data, e.g., update the plot
+    signal_data = session.get('signal_data')
+    start_time = session.get('start_time')
+    end_time = session.get('end_time')
+    title = session.get('title')
+    
+    app.logger.info(start_time, end_time, title)
+
+    # Convert signal_data to a list if it's a NumPy ndarray
+    if isinstance(signal_data, np.ndarray):
+        signal_data = signal_data.tolist()
+
+    app.logger.info("Updating plot with new annotation")
+
+    # Update the plot with the new annotation
+    plot_html = plot_ecg(signal_data, title, start_time, end_time, annotate_mode=True, annotation_x=annotation_x, annotation_text=annotation_text)
+    
+    app.logger.info("Returning plotHtml from update_plot()")
+    app.logger.info(plot_html)
+
+    # Return the updated plot HTML
+    return jsonify({'plotHtml': plot_html})
 
 @app.route('/', methods=['GET', 'POST'])
 def display_plot():
@@ -142,13 +199,20 @@ def display_plot():
         signal_data = s2
         title = patient_record.sig_name[1]
 
+    # Convert signal_data to a list if it's a NumPy ndarray
+    if isinstance(signal_data, np.ndarray):
+        signal_data = signal_data.tolist()
+
+    session['signal_data'] = signal_data
+    session['start_time'] = sampfrom
+    session['end_time'] = sampto
+    session['title'] = title
+
     # Plot ECG signal and return the HTML content
     plot_html = plot_ecg(signal_data, title, start_time=sampfrom, end_time= sampto, fs=360.0)
 
-    app.logger.info(f"Sampfrom: {sampfrom}")
-    app.logger.info(f"Sampto: {sampto}")
-
-    # app.logger.info(f"Available signals: {available_signals}")
+    app.logger.info("Rendering plot_html from display_plot()")
+    app.logger.info(plot_html)
 
     return render_template('plot4.html', plot_html=plot_html, 
                            available_numbers=available_numbers, 
@@ -159,18 +223,7 @@ def display_plot():
                            last_sampto = sampto
                            )
 
-@app.route('/annotate-plot', methods=['POST'])
-def update_plot():
-    # Parse the incoming JSON data
-    data = request.get_json()
-    
-    # Extract annotation data
-    annotation_x = data.get('annotationX')
-    annotation_text = data.get('annotationText')
-    
-    # Here, you would process the annotation data, e.g., update the plot
-    # For demonstration, let's just return a success message
-    return jsonify({'message': 'Annotation updated successfully'})
+
 
 if __name__ == '__main__':
     app.run(debug=True)
